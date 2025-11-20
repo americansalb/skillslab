@@ -21,6 +21,7 @@ module.exports = (req, res) => {
         groups: groups.map(g => ({
           groupId: g.groupId,
           groupNumber: g.groupNumber,
+          languageMode: g.languageMode || 'same',
           size: g.size,
           status: g.status,
           rotationCount: g.rotationCount,

@@ -191,10 +191,10 @@ function createGroupCard(group) {
       <strong>Rotation ${group.rotationCount || 1}</strong>
     </div>
 
-    <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.6); border-radius: 6px;">
+    <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.6); border-radius: 6px;" onclick="event.stopPropagation();">
       <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Language Mode:</label>
       <select
-        onchange="event.stopPropagation(); updateGroupLanguageMode('${group.groupId}', this.value)"
+        onchange="updateGroupLanguageMode('${group.groupId}', this.value)"
         style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px;"
       >
         <option value="same" ${group.languageMode === 'same' ? 'selected' : ''}>Same Language</option>
@@ -248,7 +248,6 @@ document.getElementById('createSessionForm')?.addEventListener('submit', async (
 
   const name = document.getElementById('sessionNameInput').value;
   const totalDuration = parseInt(document.getElementById('totalDurationInput').value);
-  const languageMode = document.getElementById('languageModeInput').value;
   const numberOfGroups = parseInt(document.getElementById('numberOfGroupsInput').value);
 
   try {
@@ -258,7 +257,6 @@ document.getElementById('createSessionForm')?.addEventListener('submit', async (
       body: JSON.stringify({
         name,
         totalDuration,
-        languageMode,
         numberOfGroups,
       }),
     });
