@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 
 // Legacy CIA app (keep for backward compatibility)
 app.get('/cia', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'cia-app.html'));
 });
 
 // Serve admin panel
