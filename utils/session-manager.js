@@ -58,6 +58,7 @@ class SessionManager {
       groupId,
       sessionId,
       groupNumber,
+      languageMode: 'same', // 'same' or 'different' - can be changed per group
       dailyRoomName: null, // Will be set when Daily room is created
       dailyRoomUrl: null,
       participants: [], // Array of participant objects
@@ -513,6 +514,47 @@ class SessionManager {
 
     // Rotate if exceeded target time
     return totalTime >= tracking.targetTime;
+  }
+
+  /**
+   * End a session
+   * @param {string} sessionId
+   * @returns {Object} Session
+   */
+  endSession(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+
+    session.status = 'completed';
+    session.endedAt = Date.now();
+
+    // Mark all groups as completed
+    session.groups.forEach(groupId => {
+      const group = this.groups.get(groupId);
+      if (group) {
+        group.status = 'completed';
+      }
+    });
+
+    return session;
+  }
+
+  /**
+   * Update group settings
+   * @param {string} groupId
+   * @param {Object} settings - Settings to update
+   * @returns {Object} Updated group
+   */
+  updateGroupSettings(groupId, settings) {
+    const group = this.groups.get(groupId);
+    if (!group) throw new Error('Group not found');
+
+    // Update language mode if provided
+    if (settings.languageMode) {
+      group.languageMode = settings.languageMode;
+    }
+
+    return group;
   }
 }
 

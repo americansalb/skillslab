@@ -112,15 +112,22 @@ function displaySession(session) {
     document.getElementById('statElapsed').textContent = '00:00';
   }
 
-  // Show/hide start button
+  // Show/hide start/end buttons
   const sessionActions = document.getElementById('sessionActions');
   sessionActions.style.display = 'flex';
 
   const startBtn = document.getElementById('startSessionBtn');
+  const endBtn = document.getElementById('endSessionBtn');
+
   if (session.status === 'active') {
     startBtn.style.display = 'none';
+    if (endBtn) endBtn.style.display = 'inline-block';
+  } else if (session.status === 'completed') {
+    startBtn.style.display = 'none';
+    if (endBtn) endBtn.style.display = 'none';
   } else {
     startBtn.style.display = 'inline-block';
+    if (endBtn) endBtn.style.display = 'none';
   }
 
   // Display groups
@@ -182,6 +189,17 @@ function createGroupCard(group) {
     <div style="font-size: 14px; color: #666; margin-bottom: 10px;">
       <strong>${group.size}</strong> participants |
       <strong>Rotation ${group.rotationCount || 1}</strong>
+    </div>
+
+    <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.6); border-radius: 6px;">
+      <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Language Mode:</label>
+      <select
+        onchange="event.stopPropagation(); updateGroupLanguageMode('${group.groupId}', this.value)"
+        style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px;"
+      >
+        <option value="same" ${group.languageMode === 'same' ? 'selected' : ''}>Same Language</option>
+        <option value="different" ${group.languageMode === 'different' ? 'selected' : ''}>Different Language</option>
+      </select>
     </div>
 
     <div class="participants-list">
@@ -486,13 +504,77 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
+// End the current session
+async function endSession() {
+  if (!state.currentSession) {
+    showNotification('No session selected', 'error');
+    return;
+  }
+
+  if (!confirm('Are you sure you want to end this session? All groups will be stopped.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/end-skillslab-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: state.currentSession.sessionId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      showNotification(data.message || 'Failed to end session', 'error');
+      return;
+    }
+
+    showNotification('Session ended successfully!', 'success');
+    await loadAllSessions();
+  } catch (error) {
+    console.error('End session error:', error);
+    showNotification('Failed to end session', 'error');
+  }
+}
+
+// Update group language mode
+async function updateGroupLanguageMode(groupId, languageMode) {
+  try {
+    const response = await fetch('/api/update-group-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        groupId,
+        languageMode,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      showNotification(data.message || 'Failed to update language mode', 'error');
+      return;
+    }
+
+    showNotification(`Language mode updated to "${languageMode}"`, 'success');
+    await loadAllSessions();
+  } catch (error) {
+    console.error('Update language mode error:', error);
+    showNotification('Failed to update language mode', 'error');
+  }
+}
+
 // Make functions globally available
 window.showCreateSessionModal = showCreateSessionModal;
 window.closeCreateSessionModal = closeCreateSessionModal;
 window.startSession = startSession;
+window.endSession = endSession;
 window.refreshGroups = refreshGroups;
 window.monitorGroup = monitorGroup;
 window.closeMonitorModal = closeMonitorModal;
 window.joinGroupAsTA = joinGroupAsTA;
 window.forceRotation = forceRotation;
 window.forceRotationForGroup = forceRotationForGroup;
+window.updateGroupLanguageMode = updateGroupLanguageMode;

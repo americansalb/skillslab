@@ -38,11 +38,13 @@ app.post('/api/create-skillslab-session', require('./api/create-skillslab-sessio
 app.post('/api/join-group', require('./api/join-group'));
 app.get('/api/get-group-state', require('./api/get-group-state'));
 app.post('/api/start-skillslab-session', require('./api/start-skillslab-session'));
+app.post('/api/end-skillslab-session', require('./api/end-skillslab-session'));
 app.post('/api/rotate-roles', require('./api/rotate-roles'));
 app.post('/api/mark-ready', require('./api/mark-ready'));
 app.post('/api/create-daily-room', require('./api/create-daily-room'));
 app.post('/api/get-daily-token', require('./api/get-daily-token'));
 app.get('/api/get-all-sessions', require('./api/get-all-sessions'));
+app.post('/api/update-group-settings', require('./api/update-group-settings'));
 
 // Serve main app - redirect to TA Panel (Skills Lab)
 app.get('/', (req, res) => {
