@@ -44,8 +44,13 @@ app.post('/api/create-daily-room', require('./api/create-daily-room'));
 app.post('/api/get-daily-token', require('./api/get-daily-token'));
 app.get('/api/get-all-sessions', require('./api/get-all-sessions'));
 
-// Serve main app
+// Serve main app - redirect to TA Panel (Skills Lab)
 app.get('/', (req, res) => {
+  res.redirect('/ta-panel');
+});
+
+// Legacy CIA app (keep for backward compatibility)
+app.get('/cia', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
