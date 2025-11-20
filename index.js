@@ -64,6 +64,11 @@ app.get('/skillslab', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'skillslab.html'));
 });
 
+// Serve TA Control Panel
+app.get('/ta-panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'ta-panel.html'));
+});
+
 // Socket.io for live monitoring and WebRTC signaling
 const activeSessions = new Map(); // Track active test sessions (CIA legacy)
 const sessionManager = require('./utils/session-manager'); // Skills Lab session manager
