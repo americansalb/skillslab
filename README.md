@@ -1,18 +1,18 @@
-# CIA - Consecutive Interpreting Assessment
+# Skills Lab - Collaborative Interpreting Roleplay Platform
 
-A comprehensive web application for conducting and grading consecutive interpreting assessments with dual-camera proctoring.
+A real-time collaborative platform for conducting shared roleplay experiences with 30+ students simultaneously, featuring automatic role rotation, script segmentation, and TA monitoring.
 
 ## Features
 
-- **Student Authentication**: Login with email + student ID
-- **Dual Recording**: Main device + proctor device (second camera angle)
-- **Data Loss Prevention**: Automatic 1-minute chunk uploads to Google Drive
-- **Intervention System**:
-  - Request repetitions (5 available)
-  - Request research pauses (90 seconds each)
-  - Maximum 10 interventions per test (5 without penalty)
-- **Admin Panel**: View and grade all recordings
-- **35-Minute Test Limit**: Automatic timeout protection
+- **Group-Based Roleplays**: Students join assigned groups (2-3 people) via group codes
+- **Three Role System**: Interpreter, Patient, Provider with automatic assignment
+- **Automatic Role Rotation**: Time-balanced rotation ensuring equal interpretation time
+- **Script Segmentation**: Upload scripts and audio for patient/provider lines
+- **Hybrid Audio**: Students can speak live OR play pre-recorded lines
+- **Real-Time Recording**: All rooms simultaneously recorded to Google Drive
+- **TA Control Panel**: Monitor all rooms, move between groups, reassign students
+- **Dynamic Group Sizes**: Seamless transitions between 2-person and 3-person groups
+- **Time Tracking**: Intelligent time balancing with proportional transition deductions
 
 ## Setup Instructions
 

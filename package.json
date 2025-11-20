@@ -1,7 +1,7 @@
 {
-  "name": "cia-assessment",
+  "name": "skills-lab",
   "version": "1.0.0",
-  "description": "Consecutive Interpreting Assessment Application",
+  "description": "Collaborative Interpreting Roleplay Platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -12,9 +12,10 @@
     "formidable": "^3.5.1",
     "googleapis": "^144.0.0",
     "dotenv": "^16.3.1",
-    "qrcode": "^1.5.3",
     "uuid": "^9.0.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "@daily-co/daily-js": "^0.64.0",
+    "axios": "^1.6.0"
   },
   "engines": {
     "node": ">=18.0.0"

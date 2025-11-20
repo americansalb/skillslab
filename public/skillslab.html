@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skills Lab - Collaborative Interpreting</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .skillslab-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      margin: 5px;
+    }
+
+    .role-interpreter {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .role-patient {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .role-provider {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .video-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .video-card video {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .video-card-footer {
+      padding: 15px;
+      background: #f8f9fa;
+    }
+
+    .participant-name {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .script-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .script-line {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border-left: 4px solid #00897b;
+    }
+
+    .audio-player-btn {
+      background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .audio-player-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .rotation-alert {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .rotation-alert-content {
+      background: white;
+      padding: 50px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 600px;
+    }
+
+    .ready-btn {
+      background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+      color: white;
+      border: none;
+      padding: 20px 50px;
+      border-radius: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 30px;
+    }
+
+    .ready-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .time-tracker {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .time-value {
+      font-size: 48px;
+      font-weight: bold;
+    }
+
+    .group-info-header {
+      background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .interpreter-message {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="skillslab-container">
+
+    <!-- Page 1: Join Group -->
+    <div id="pageJoinGroup" class="page active">
+      <div class="group-info-header">
+        <h1>Skills Lab - Join Your Group</h1>
+        <p>Enter your information and assigned group number</p>
+      </div>
+
+      <div style="max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <form id="joinGroupForm">
+          <div class="form-group">
+            <label for="studentName">Your Name</label>
+            <input type="text" id="studentName" required placeholder="John Doe">
+          </div>
+
+          <div class="form-group">
+            <label for="studentEmail">Email</label>
+            <input type="email" id="studentEmail" required placeholder="john@example.com">
+          </div>
+
+          <div class="form-group">
+            <label for="studentId">Student ID (optional)</label>
+            <input type="text" id="studentId" placeholder="12345">
+          </div>
+
+          <div class="form-group">
+            <label for="sessionId">Session ID</label>
+            <input type="text" id="sessionId" required placeholder="Provided by instructor">
+          </div>
+
+          <div class="form-group">
+            <label for="groupNumber">Group Number</label>
+            <input type="number" id="groupNumber" required placeholder="1" min="1">
+          </div>
+
+          <button type="submit" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #00897b 0%, #00695c 100%); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">
+            Join Group
+          </button>
+        </form>
+
+        <div id="joinError" style="display: none; color: red; margin-top: 20px; padding: 15px; background: #ffebee; border-radius: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- Page 2: Waiting for Session to Start -->
+    <div id="pageWaiting" class="page" style="display: none;">
+      <div class="group-info-header">
+        <h1>Welcome to Group <span id="displayGroupNumber"></span>!</h1>
+        <p>Waiting for session to start...</p>
+      </div>
+
+      <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+        <div style="margin: 30px 0;">
+          <h2>Your Role:</h2>
+          <div id="currentRoleBadge" class="role-badge"></div>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <h3>Next Role:</h3>
+          <div id="nextRoleBadge" class="role-badge"></div>
+        </div>
+
+        <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+          <h3>Group Members:</h3>
+          <div id="groupMembersList"></div>
+        </div>
+
+        <div class="loading-spinner"></div>
+        <p style="color: #666; margin-top: 20px;">Instructor will start the session shortly...</p>
+      </div>
+    </div>
+
+    <!-- Page 3: Active Session -->
+    <div id="pageActiveSession" class="page" style="display: none;">
+      <!-- Header with role and time -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="group-info-header" style="margin: 0;">
+          <h2 style="margin: 0;">Group <span id="activeGroupNumber"></span></h2>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;">Rotation: <span id="rotationCount">1</span></p>
+        </div>
+
+        <div class="time-tracker">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Your Time as Interpreter</div>
+          <div class="time-value" id="interpreterTime">00:00</div>
+          <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Target: <span id="targetTime">10:00</span></div>
+        </div>
+
+        <div class="group-info-header" style="margin: 0;">
+          <h2 style="margin: 0;">Current Role:</h2>
+          <div id="activeRoleBadge" class="role-badge" style="font-size: 18px; margin-top: 10px;"></div>
+        </div>
+      </div>
+
+      <!-- Video Grid -->
+      <div class="video-grid" id="videoGrid">
+        <!-- Videos will be dynamically added -->
+      </div>
+
+      <!-- Role-Specific Interface -->
+      <div id="interpreterInterface" style="display: none;">
+        <div class="interpreter-message">
+          <h2>🎤 Interpreter Mode</h2>
+          <p>Listen carefully and interpret what you hear.</p>
+          <p>You do not see any script - rely on your listening skills!</p>
+        </div>
+      </div>
+
+      <div id="patientInterface" class="script-panel" style="display: none;">
+        <h2>Patient Script</h2>
+        <div id="patientScriptLines"></div>
+      </div>
+
+      <div id="providerInterface" class="script-panel" style="display: none;">
+        <h2>Provider Script</h2>
+        <div id="providerScriptLines"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Rotation Alert Modal -->
+  <div id="rotationAlert" class="rotation-alert" style="display: none;">
+    <div class="rotation-alert-content">
+      <h1 style="color: #00897b; font-size: 36px; margin-bottom: 20px;">🔄 Role Switch!</h1>
+      <p style="font-size: 20px; color: #666; margin-bottom: 10px;">Your new role:</p>
+      <div id="newRoleBadge" class="role-badge" style="font-size: 24px;"></div>
+      <p style="font-size: 16px; color: #888; margin-top: 30px;">Click ready when you're prepared to continue</p>
+      <button class="ready-btn" onclick="markReady()">I'm Ready</button>
+      <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+        <p style="margin: 0; color: #666;">Waiting for: <span id="waitingForList"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Daily.co -->
+  <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+
+  <!-- Skills Lab App -->
+  <script src="/js/skillslab.js"></script>
+</body>
+</html>

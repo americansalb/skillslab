@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API Routes
+// API Routes - Legacy CIA routes
 app.get('/api/health', require('./api/health'));
 app.post('/api/validate-student', require('./api/validate-student'));
 app.post('/api/validate-admin', require('./api/validate-admin'));
@@ -33,6 +33,17 @@ app.post('/api/save-test', require('./api/save-test'));
 app.post('/api/split-and-upload', require('./api/split-and-upload'));
 app.post('/api/save-emergency-state', require('./api/save-emergency-state'));
 
+// Skills Lab API Routes
+app.post('/api/create-skillslab-session', require('./api/create-skillslab-session'));
+app.post('/api/join-group', require('./api/join-group'));
+app.get('/api/get-group-state', require('./api/get-group-state'));
+app.post('/api/start-skillslab-session', require('./api/start-skillslab-session'));
+app.post('/api/rotate-roles', require('./api/rotate-roles'));
+app.post('/api/mark-ready', require('./api/mark-ready'));
+app.post('/api/create-daily-room', require('./api/create-daily-room'));
+app.post('/api/get-daily-token', require('./api/get-daily-token'));
+app.get('/api/get-all-sessions', require('./api/get-all-sessions'));
+
 // Serve main app
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -48,8 +59,14 @@ app.get('/proctor', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'proctor.html'));
 });
 
+// Serve Skills Lab app
+app.get('/skillslab', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'skillslab.html'));
+});
+
 // Socket.io for live monitoring and WebRTC signaling
-const activeSessions = new Map(); // Track active test sessions
+const activeSessions = new Map(); // Track active test sessions (CIA legacy)
+const sessionManager = require('./utils/session-manager'); // Skills Lab session manager
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -137,14 +154,206 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ======== Skills Lab Socket Handlers ========
+
+  // Join a Skills Lab group
+  socket.on('skillslab:join-group', ({ groupId, participantId, role }) => {
+    console.log(`Skills Lab - Participant ${participantId} joined group ${groupId} as ${role}`);
+
+    socket.join(groupId);
+    socket.groupId = groupId;
+    socket.participantId = participantId;
+    socket.skillslabRole = role;
+
+    // Update participant socket ID in session manager
+    const group = sessionManager.groups.get(groupId);
+    if (group) {
+      const participant = group.participants.find(p => p.participantId === participantId);
+      if (participant) {
+        participant.socketId = socket.id;
+      }
+
+      // Notify all group members
+      io.to(groupId).emit('skillslab:participant-joined', {
+        participantId,
+        role,
+        groupSize: group.size,
+        participants: group.participants.map(p => ({
+          participantId: p.participantId,
+          name: p.name,
+          role: group.currentRoles[p.participantId],
+        })),
+      });
+    }
+  });
+
+  // Request role rotation
+  socket.on('skillslab:request-rotation', ({ groupId }) => {
+    console.log(`Skills Lab - Rotation requested for group ${groupId}`);
+
+    try {
+      const result = sessionManager.rotateRoles(groupId);
+      const group = sessionManager.groups.get(groupId);
+
+      if (group) {
+        group.switchStartTime = Date.now();
+
+        // Notify all participants of role change
+        io.to(groupId).emit('skillslab:role-rotation', {
+          newRoles: result.newRoles,
+          rotationCount: result.rotationCount,
+          requiresReady: true,
+        });
+      }
+    } catch (error) {
+      socket.emit('error', { message: error.message });
+    }
+  });
+
+  // Participant marks ready after role switch
+  socket.on('skillslab:mark-ready', ({ groupId, participantId }) => {
+    console.log(`Skills Lab - Participant ${participantId} marked ready in group ${groupId}`);
+
+    try {
+      const allReady = sessionManager.markParticipantReady(groupId, participantId);
+
+      // Notify group of ready status
+      const group = sessionManager.groups.get(groupId);
+      if (group) {
+        io.to(groupId).emit('skillslab:ready-status', {
+          participantId,
+          readyCount: group.readyChecks ? group.readyChecks.size : 0,
+          totalParticipants: group.size,
+          allReady,
+        });
+
+        if (allReady) {
+          // Resume session
+          io.to(groupId).emit('skillslab:session-resumed', {
+            message: 'All participants ready - continuing',
+          });
+        }
+      }
+    } catch (error) {
+      socket.emit('error', { message: error.message });
+    }
+  });
+
+  // Play audio line (patient/provider)
+  socket.on('skillslab:play-line', ({ groupId, participantId, lineNumber, role }) => {
+    console.log(`Skills Lab - ${role} playing line ${lineNumber} in group ${groupId}`);
+
+    // Broadcast to all group members
+    io.to(groupId).emit('skillslab:line-played', {
+      participantId,
+      lineNumber,
+      role,
+    });
+  });
+
+  // TA joins to monitor a group
+  socket.on('skillslab:ta-join-group', ({ groupId, taName }) => {
+    console.log(`Skills Lab - TA ${taName} monitoring group ${groupId}`);
+
+    socket.join(groupId);
+    socket.isTA = true;
+    socket.taName = taName;
+
+    // Notify group that TA joined
+    io.to(groupId).emit('skillslab:ta-joined', {
+      taName,
+      message: 'TA has joined to observe',
+    });
+  });
+
+  // TA manually triggers rotation
+  socket.on('skillslab:ta-force-rotation', ({ groupId }) => {
+    console.log(`Skills Lab - TA forcing rotation for group ${groupId}`);
+
+    try {
+      const result = sessionManager.rotateRoles(groupId);
+      const group = sessionManager.groups.get(groupId);
+
+      if (group) {
+        group.switchStartTime = Date.now();
+
+        io.to(groupId).emit('skillslab:role-rotation', {
+          newRoles: result.newRoles,
+          rotationCount: result.rotationCount,
+          requiresReady: true,
+          forcedByTA: true,
+        });
+      }
+    } catch (error) {
+      socket.emit('error', { message: error.message });
+    }
+  });
+
+  // TA moves participant to different group
+  socket.on('skillslab:ta-move-participant', ({ participantId, fromGroupId, toGroupId }) => {
+    console.log(`Skills Lab - TA moving participant ${participantId} from ${fromGroupId} to ${toGroupId}`);
+
+    // Notify old group
+    io.to(fromGroupId).emit('skillslab:participant-left', {
+      participantId,
+      reason: 'Moved by TA',
+    });
+
+    // Notify new group
+    io.to(toGroupId).emit('skillslab:participant-joined', {
+      participantId,
+      reason: 'Moved by TA',
+    });
+
+    // Update TA panel
+    io.emit('skillslab:groups-updated');
+  });
+
+  // Time tracking update
+  socket.on('skillslab:time-update', ({ groupId, participantId }) => {
+    const group = sessionManager.groups.get(groupId);
+    if (!group) return;
+
+    // Check if rotation is needed
+    if (sessionManager.shouldRotate(groupId)) {
+      console.log(`Skills Lab - Auto-rotating group ${groupId} due to time threshold`);
+
+      try {
+        const result = sessionManager.rotateRoles(groupId);
+        group.switchStartTime = Date.now();
+
+        io.to(groupId).emit('skillslab:role-rotation', {
+          newRoles: result.newRoles,
+          rotationCount: result.rotationCount,
+          requiresReady: true,
+          automatic: true,
+        });
+      } catch (error) {
+        console.error('Auto-rotation error:', error);
+      }
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
 
-    // Remove from active sessions if student
+    // Remove from active sessions if student (CIA legacy)
     if (socket.role === 'student' && socket.sessionId) {
       activeSessions.delete(socket.sessionId);
       io.emit('active-sessions', Array.from(activeSessions.values()));
+    }
+
+    // Handle Skills Lab disconnection
+    if (socket.groupId && socket.participantId) {
+      const group = sessionManager.groups.get(socket.groupId);
+      if (group) {
+        // Notify group members
+        io.to(socket.groupId).emit('skillslab:participant-disconnected', {
+          participantId: socket.participantId,
+          role: socket.skillslabRole,
+        });
+      }
     }
   });
 });
