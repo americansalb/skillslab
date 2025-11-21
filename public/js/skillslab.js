@@ -73,30 +73,43 @@ function initSocket() {
   });
 }
 
+// Generate or retrieve client ID from localStorage
+function getClientId() {
+  let clientId = localStorage.getItem('skillslab_clientId');
+  if (!clientId) {
+    // Generate new client ID
+    clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('skillslab_clientId', clientId);
+    console.log('[STUDENT] Generated new client ID:', clientId);
+  } else {
+    console.log('[STUDENT] Using existing client ID:', clientId);
+  }
+  return clientId;
+}
+
 // Join group form submission
 document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const name = document.getElementById('studentName').value;
-  const email = document.getElementById('studentEmail').value;
-  const studentId = document.getElementById('studentId').value || '';
   const sessionId = document.getElementById('sessionId').value;
   const groupNumber = parseInt(document.getElementById('groupNumber').value);
+  const clientId = getClientId();
 
   console.log('='.repeat(80));
   console.log('[STUDENT] Joining group...');
   console.log('[STUDENT] Name:', name);
-  console.log('[STUDENT] Email:', email);
-  console.log('[STUDENT] Session ID:', sessionId);
+  console.log('[STUDENT] Session PIN:', sessionId);
   console.log('[STUDENT] Group Number:', groupNumber);
+  console.log('[STUDENT] Client ID:', clientId);
 
   try {
     const requestBody = {
       sessionId,
       groupNumber,
-      email,
+      clientId,
       name,
-      studentId,
+      studentId: '', // Empty for now
     };
 
     console.log('[STUDENT] Request body:', JSON.stringify(requestBody, null, 2));

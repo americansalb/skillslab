@@ -188,27 +188,17 @@
         <form id="joinGroupForm">
           <div class="form-group">
             <label for="studentName">Your Name</label>
-            <input type="text" id="studentName" required placeholder="John Doe">
+            <input type="text" id="studentName" required placeholder="Your name" autocomplete="name">
           </div>
 
           <div class="form-group">
-            <label for="studentEmail">Email</label>
-            <input type="email" id="studentEmail" required placeholder="john@example.com">
-          </div>
-
-          <div class="form-group">
-            <label for="studentId">Student ID (optional)</label>
-            <input type="text" id="studentId" placeholder="12345">
-          </div>
-
-          <div class="form-group">
-            <label for="sessionId">Session ID</label>
-            <input type="text" id="sessionId" required placeholder="Provided by instructor">
+            <label for="sessionId">Session PIN (4 digits)</label>
+            <input type="text" id="sessionId" required placeholder="1234" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" style="font-size: 24px; text-align: center; letter-spacing: 8px;">
           </div>
 
           <div class="form-group">
             <label for="groupNumber">Group Number</label>
-            <input type="number" id="groupNumber" required placeholder="1" min="1">
+            <input type="number" id="groupNumber" required placeholder="1" min="1" max="12">
           </div>
 
           <button type="submit" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #00897b 0%, #00695c 100%); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">

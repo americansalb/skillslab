@@ -21,7 +21,18 @@ class SessionManager {
    * @returns {Object} Session object
    */
   createSession(config) {
-    const sessionId = this.generateId();
+    // Generate 4-digit PIN (ensure uniqueness)
+    let sessionId;
+    let attempts = 0;
+    do {
+      sessionId = this.generateSessionPin();
+      attempts++;
+      if (attempts > 100) {
+        // Fallback to long ID if we can't find a unique PIN
+        sessionId = this.generateId();
+        break;
+      }
+    } while (this.sessions.has(sessionId));
 
     const session = {
       sessionId,
@@ -80,15 +91,15 @@ class SessionManager {
   /**
    * Add a student to a group
    * @param {string} groupId
-   * @param {Object} student - Student info (email, name, studentId)
+   * @param {Object} student - Student info (clientId, name, studentId)
    * @returns {Object} Assignment with role
    */
   joinGroup(groupId, student) {
     const group = this.groups.get(groupId);
     if (!group) throw new Error('Group not found');
 
-    // Check if already in group
-    const existing = group.participants.find(p => p.email === student.email);
+    // Check if already in group (by clientId)
+    const existing = group.participants.find(p => p.clientId === student.clientId);
     if (existing) {
       return {
         groupId,
@@ -107,7 +118,7 @@ class SessionManager {
 
     const participant = {
       participantId,
-      email: student.email,
+      clientId: student.clientId, // Unique browser ID
       name: student.name,
       studentId: student.studentId,
       socketId: null,
@@ -129,8 +140,8 @@ class SessionManager {
       targetTime: null, // Will be calculated when session starts
     };
 
-    // Track assignment
-    this.studentAssignments.set(student.email, {
+    // Track assignment by clientId
+    this.studentAssignments.set(student.clientId, {
       groupId,
       participantId,
       role,
@@ -295,18 +306,18 @@ class SessionManager {
 
   /**
    * Handle participant leaving
-   * @param {string} email
+   * @param {string} clientId
    * @returns {Object} Updated group state
    */
-  handleParticipantLeave(email) {
-    const assignment = this.studentAssignments.get(email);
+  handleParticipantLeave(clientId) {
+    const assignment = this.studentAssignments.get(clientId);
     if (!assignment) return null;
 
     const group = this.groups.get(assignment.groupId);
     if (!group) return null;
 
     // Remove participant
-    group.participants = group.participants.filter(p => p.email !== email);
+    group.participants = group.participants.filter(p => p.clientId !== clientId);
     group.size = group.participants.length;
 
     // Remove from role assignments and time tracking
@@ -336,7 +347,7 @@ class SessionManager {
       }
     }
 
-    this.studentAssignments.delete(email);
+    this.studentAssignments.delete(clientId);
 
     return {
       groupId: group.groupId,
@@ -409,6 +420,14 @@ class SessionManager {
    */
   generateId() {
     return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * Generate 4-digit PIN for session
+   */
+  generateSessionPin() {
+    // Generate random 4-digit number (1000-9999)
+    return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
   /**

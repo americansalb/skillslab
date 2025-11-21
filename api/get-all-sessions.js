@@ -29,7 +29,6 @@ module.exports = (req, res) => {
           participants: g.participants.map(p => ({
             participantId: p.participantId,
             name: p.name,
-            email: p.email,
             role: g.currentRoles[p.participantId],
           })),
         })),

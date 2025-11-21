@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
     const {
       sessionId,
       groupNumber,
-      email,
+      clientId,
       name,
       studentId,
     } = req.body;
@@ -20,14 +20,15 @@ module.exports = async (req, res) => {
     console.log('[JOIN-GROUP] Request body:', JSON.stringify(req.body, null, 2));
     console.log('[JOIN-GROUP] Session ID:', sessionId);
     console.log('[JOIN-GROUP] Group Number:', groupNumber);
-    console.log('[JOIN-GROUP] Student:', name, '(' + email + ')');
+    console.log('[JOIN-GROUP] Student:', name);
+    console.log('[JOIN-GROUP] Client ID:', clientId);
 
-    if (!sessionId || !groupNumber || !email || !name) {
+    if (!sessionId || !groupNumber || !clientId || !name) {
       console.error('[JOIN-GROUP] ERROR: Missing required fields');
-      console.error('[JOIN-GROUP] Received:', { sessionId, groupNumber, email, name });
+      console.error('[JOIN-GROUP] Received:', { sessionId, groupNumber, clientId, name });
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: sessionId, groupNumber, email, name',
+        message: 'Missing required fields: sessionId, groupNumber, clientId, name',
       });
     }
 
@@ -63,7 +64,7 @@ module.exports = async (req, res) => {
     // Join group
     console.log('[JOIN-GROUP] Attempting to join group...');
     const assignment = sessionManager.joinGroup(groupId, {
-      email,
+      clientId,
       name,
       studentId,
     });
