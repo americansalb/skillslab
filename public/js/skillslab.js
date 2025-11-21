@@ -83,26 +83,44 @@ document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) =
   const sessionId = document.getElementById('sessionId').value;
   const groupNumber = parseInt(document.getElementById('groupNumber').value);
 
+  console.log('='.repeat(80));
+  console.log('[STUDENT] Joining group...');
+  console.log('[STUDENT] Name:', name);
+  console.log('[STUDENT] Email:', email);
+  console.log('[STUDENT] Session ID:', sessionId);
+  console.log('[STUDENT] Group Number:', groupNumber);
+
   try {
+    const requestBody = {
+      sessionId,
+      groupNumber,
+      email,
+      name,
+      studentId,
+    };
+
+    console.log('[STUDENT] Request body:', JSON.stringify(requestBody, null, 2));
+
     const response = await fetch('/api/join-group', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId,
-        groupNumber,
-        email,
-        name,
-        studentId,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('[STUDENT] Response status:', response.status);
+    console.log('[STUDENT] Response headers:', response.headers);
+
     const data = await response.json();
+    console.log('[STUDENT] Response data:', JSON.stringify(data, null, 2));
 
     if (!data.success) {
+      console.error('[STUDENT] ✗ Join failed:', data.message);
       document.getElementById('joinError').textContent = data.message || 'Failed to join group';
       document.getElementById('joinError').style.display = 'block';
       return;
     }
+
+    console.log('[STUDENT] ✓ Successfully joined group!');
 
     // Store state
     state.sessionId = sessionId;

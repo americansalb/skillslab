@@ -84,6 +84,9 @@ async function loadAllSessions() {
 function displaySession(session) {
   state.currentSession = session;
 
+  console.log('[TA Panel] Displaying session:', session.sessionId);
+  console.log('[TA Panel] Session details:', session);
+
   // Hide empty state
   document.getElementById('emptyState').style.display = 'none';
 
@@ -94,6 +97,9 @@ function displaySession(session) {
   document.getElementById('sessionName').textContent = session.name;
   document.getElementById('sessionDetails').textContent =
     `Status: ${session.status.toUpperCase()} | Language Mode: ${session.languageMode}`;
+
+  // Display Session ID prominently
+  document.getElementById('sessionIdDisplay').textContent = session.sessionId;
 
   // Update stats
   const totalParticipants = session.groups.reduce((sum, g) => sum + g.size, 0);
@@ -564,6 +570,23 @@ async function updateGroupLanguageMode(groupId, languageMode) {
   }
 }
 
+// Copy session ID to clipboard
+function copySessionId() {
+  const sessionId = state.currentSession?.sessionId;
+  if (!sessionId) {
+    showNotification('No session ID to copy', 'error');
+    return;
+  }
+
+  navigator.clipboard.writeText(sessionId).then(() => {
+    showNotification('Session ID copied to clipboard!', 'success');
+    console.log('[TA Panel] Copied session ID:', sessionId);
+  }).catch(err => {
+    console.error('[TA Panel] Failed to copy session ID:', err);
+    showNotification('Failed to copy session ID', 'error');
+  });
+}
+
 // Make functions globally available
 window.showCreateSessionModal = showCreateSessionModal;
 window.closeCreateSessionModal = closeCreateSessionModal;
@@ -576,3 +599,4 @@ window.joinGroupAsTA = joinGroupAsTA;
 window.forceRotation = forceRotation;
 window.forceRotationForGroup = forceRotationForGroup;
 window.updateGroupLanguageMode = updateGroupLanguageMode;
+window.copySessionId = copySessionId;
