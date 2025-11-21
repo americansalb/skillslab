@@ -94,6 +94,7 @@ class SessionManager {
         groupId,
         role: group.currentRoles[existing.participantId],
         participant: existing,
+        group,  // FIX: Include group in early return
       };
     }
 
