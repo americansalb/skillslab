@@ -130,6 +130,11 @@ document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) =
     state.currentRole = data.currentRole;
     state.nextRole = data.nextRole;
     state.group = data.group;
+    state.dailyToken = data.dailyToken;
+    state.dailyRoomUrl = data.dailyRoomUrl;
+
+    console.log('[STUDENT] Daily room URL:', state.dailyRoomUrl);
+    console.log('[STUDENT] Has Daily token:', !!state.dailyToken);
 
     // Initialize socket
     initSocket();
@@ -140,9 +145,6 @@ document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) =
       participantId: data.participantId,
       role: data.currentRole,
     });
-
-    // Create Daily room if needed
-    await createDailyRoom();
 
     // Show waiting page
     showWaitingPage();
@@ -156,21 +158,63 @@ document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) =
   }
 });
 
-// Create or get Daily room for the group
-async function createDailyRoom() {
+// Initialize Daily.co video call
+async function initializeDailyCall() {
+  if (!state.dailyToken || !state.dailyRoomUrl) {
+    console.log('[DAILY] No Daily room configured, skipping video setup');
+    return;
+  }
+
   try {
-    const response = await fetch('/api/create-daily-room', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupId: state.groupId }),
+    console.log('[DAILY] Initializing Daily.co call...');
+    console.log('[DAILY] Room URL:', state.dailyRoomUrl);
+
+    // Create Daily CallFrame
+    const callFrame = window.DailyIframe.createFrame(
+      document.getElementById('videoGrid'),
+      {
+        iframeStyle: {
+          width: '100%',
+          height: '500px',
+          border: 'none',
+          borderRadius: '12px',
+        },
+        showLeaveButton: true,
+        showFullscreenButton: true,
+      }
+    );
+
+    // Store in state
+    state.dailyCallFrame = callFrame;
+
+    // Join the room with token
+    console.log('[DAILY] Joining room with token...');
+    await callFrame.join({
+      url: state.dailyRoomUrl,
+      token: state.dailyToken,
     });
 
-    const data = await response.json();
-    if (data.success) {
-      console.log('Daily room created:', data.roomUrl);
-    }
+    console.log('[DAILY] ✓ Successfully joined Daily room!');
+
+    // Listen for events
+    callFrame.on('joined-meeting', () => {
+      console.log('[DAILY] Joined meeting');
+    });
+
+    callFrame.on('participant-joined', (event) => {
+      console.log('[DAILY] Participant joined:', event.participant.user_name);
+    });
+
+    callFrame.on('participant-left', (event) => {
+      console.log('[DAILY] Participant left:', event.participant.user_name);
+    });
+
+    callFrame.on('error', (error) => {
+      console.error('[DAILY] Error:', error);
+    });
+
   } catch (error) {
-    console.error('Failed to create Daily room:', error);
+    console.error('[DAILY] ✗ Failed to initialize Daily call:', error);
   }
 }
 
@@ -249,7 +293,7 @@ async function startSession(data) {
   updateInterface();
 
   // Join Daily call
-  await joinDailyCall();
+  await initializeDailyCall();
 
   // Start time tracking
   startTimeTracking();
@@ -385,12 +429,35 @@ function updateInterface() {
 
 // Render script lines for patient/provider
 function renderScript(role) {
+  const container = document.getElementById(`${role}ScriptLines`);
+
   if (!state.session || !state.session.script) {
+    // Show placeholder when no script is loaded
+    const roleName = role.charAt(0).toUpperCase() + role.slice(1);
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📄</div>
+        <h3 style="margin-bottom: 10px;">${roleName} Role</h3>
+        <p>No script loaded yet. Your TA will upload a script for this session.</p>
+        <p style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
+          When a script is loaded, you'll see your lines here with audio playback buttons.
+        </p>
+      </div>
+    `;
     return;
   }
 
-  const container = document.getElementById(`${role}ScriptLines`);
   const lines = state.session.script[role] || [];
+
+  if (lines.length === 0) {
+    // Show empty state if script exists but has no lines for this role
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <p>No lines assigned to this role yet.</p>
+      </div>
+    `;
+    return;
+  }
 
   container.innerHTML = lines.map((line, index) => `
     <div class="script-line">

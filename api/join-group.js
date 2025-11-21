@@ -1,10 +1,11 @@
 const sessionManager = require('../utils/session-manager');
+const dailyHelper = require('../utils/daily-helper');
 
 /**
  * Student joins a group
  * POST /api/join-group
  */
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   try {
     const {
       sessionId,
@@ -75,12 +76,35 @@ module.exports = (req, res) => {
     const nextRole = calculateNextRole(assignment.group, assignment.participant.participantId);
     console.log('[JOIN-GROUP] Next role will be:', nextRole);
 
+    // Generate Daily.co meeting token
+    let dailyToken = null;
+    let dailyRoomUrl = null;
+    if (assignment.group.dailyRoomName) {
+      try {
+        console.log('[JOIN-GROUP] Generating Daily.co meeting token...');
+        dailyToken = await dailyHelper.createMeetingToken(assignment.group.dailyRoomName, {
+          name: assignment.participant.name,
+          participantId: assignment.participant.participantId,
+          isTA: false,
+        });
+        dailyRoomUrl = assignment.group.dailyRoomUrl;
+        console.log('[JOIN-GROUP] ✓ Daily token generated');
+      } catch (dailyError) {
+        console.error('[JOIN-GROUP] ✗ Failed to generate Daily token:', dailyError.message);
+        // Continue without token - student can still participate without video
+      }
+    } else {
+      console.log('[JOIN-GROUP] No Daily room configured for this group');
+    }
+
     const response = {
       success: true,
       groupId: assignment.groupId,
       participantId: assignment.participant.participantId,
       currentRole: assignment.role,
       nextRole,
+      dailyToken,
+      dailyRoomUrl,
       group: {
         groupNumber: assignment.group.groupNumber,
         size: assignment.group.size,

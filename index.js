@@ -370,6 +370,43 @@ io.on('connection', (socket) => {
   });
 });
 
+// Automatic rotation checker - runs every 10 seconds
+function checkRotations() {
+  const groups = Array.from(sessionManager.groups.values());
+
+  groups.forEach((group) => {
+    // Only check active groups
+    if (group.status !== 'active') return;
+
+    try {
+      const shouldRotate = sessionManager.shouldRotate(group.groupId);
+
+      if (shouldRotate) {
+        console.log(`[ROTATION] Auto-triggering rotation for group ${group.groupNumber}`);
+
+        // Perform rotation
+        const result = sessionManager.rotateRoles(group.groupId);
+        group.switchStartTime = Date.now();
+
+        // Notify all participants
+        io.to(group.groupId).emit('skillslab:role-rotation', {
+          newRoles: result.newRoles,
+          rotationCount: result.rotationCount,
+          requiresReady: true,
+        });
+
+        console.log(`[ROTATION] ✓ Rotation triggered for group ${group.groupNumber}, new interpreter: ${Object.entries(result.newRoles).find(([pid, role]) => role === 'interpreter')[0]}`);
+      }
+    } catch (error) {
+      console.error(`[ROTATION] Error checking rotation for group ${group.groupId}:`, error.message);
+    }
+  });
+}
+
+// Start rotation checker (runs every 10 seconds)
+setInterval(checkRotations, 10000);
+console.log('[ROTATION] Auto-rotation checker started (10s interval)');
+
 server.listen(PORT, () => {
   console.log(`CIA Assessment Server running on port ${PORT}`);
   console.log(`WebSocket server ready for live monitoring`);
