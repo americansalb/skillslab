@@ -182,7 +182,7 @@ async function initializeDailyCall() {
     console.log('[DAILY] Initializing Daily.co call...');
     console.log('[DAILY] Room URL:', state.dailyRoomUrl);
 
-    // Create Daily CallFrame
+    // Create Daily CallFrame with camera/mic enabled
     const callFrame = window.DailyIframe.createFrame(
       document.getElementById('videoGrid'),
       {
@@ -194,17 +194,21 @@ async function initializeDailyCall() {
         },
         showLeaveButton: true,
         showFullscreenButton: true,
+        startVideoOff: false,
+        startAudioOff: false,
       }
     );
 
     // Store in state
     state.dailyCallFrame = callFrame;
 
-    // Join the room with token
+    // Join the room with token - this will prompt for camera/mic
     console.log('[DAILY] Joining room with token...');
     await callFrame.join({
       url: state.dailyRoomUrl,
       token: state.dailyToken,
+      startVideoOff: false,
+      startAudioOff: false,
     });
 
     console.log('[DAILY] ✓ Successfully joined Daily room!');
@@ -224,6 +228,10 @@ async function initializeDailyCall() {
 
     callFrame.on('error', (error) => {
       console.error('[DAILY] Error:', error);
+    });
+
+    callFrame.on('camera-error', (error) => {
+      console.error('[DAILY] Camera error:', error);
     });
 
   } catch (error) {
