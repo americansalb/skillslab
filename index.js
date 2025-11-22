@@ -45,6 +45,7 @@ app.post('/api/create-daily-room', require('./api/create-daily-room'));
 app.post('/api/get-daily-token', require('./api/get-daily-token'));
 app.get('/api/get-all-sessions', require('./api/get-all-sessions'));
 app.post('/api/update-group-settings', require('./api/update-group-settings'));
+app.post('/api/upload-group-recording', require('./api/upload-group-recording'));
 
 // Serve main app - redirect to TA Panel (Skills Lab)
 app.get('/', (req, res) => {

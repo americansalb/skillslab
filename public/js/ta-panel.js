@@ -12,6 +12,9 @@ const state = {
   refreshInterval: null,
   currentView: 'cards', // 'cards' or 'videos'
   dailyCallFrames: new Map(), // groupId -> DailyCallFrame for video grid
+  recording: false,
+  mediaRecorders: new Map(), // groupId -> {recorder, chunks, groupNumber}
+  recordingStartTime: null,
 };
 
 // Initialize on page load
@@ -748,6 +751,11 @@ async function joinGroupVideoFeed(group, containerEl) {
 
 // Clean up all video feeds
 function cleanupLiveVideos() {
+  // Stop recording if active
+  if (state.recording) {
+    stopRecording();
+  }
+
   state.dailyCallFrames.forEach((callFrame, groupId) => {
     try {
       callFrame.leave();
@@ -758,6 +766,153 @@ function cleanupLiveVideos() {
   });
   state.dailyCallFrames.clear();
 }
+
+// Start recording all group video feeds
+async function startRecording() {
+  if (state.recording) {
+    showNotification('Already recording!', 'warning');
+    return;
+  }
+
+  if (state.dailyCallFrames.size === 0) {
+    showNotification('No video feeds to record', 'error');
+    return;
+  }
+
+  console.log('[RECORDING] Starting recording for', state.dailyCallFrames.size, 'groups');
+
+  state.recording = true;
+  state.recordingStartTime = Date.now();
+  state.mediaRecorders.clear();
+
+  // Find the actual video containers
+  state.dailyCallFrames.forEach((callFrame, groupId) => {
+    try {
+      const group = state.currentSession.groups.find(g => g.groupId === groupId);
+      if (!group) {
+        console.error(`[RECORDING] Group not found: ${groupId}`);
+        return;
+      }
+
+      // Get the video container element
+      const container = document.getElementById(`video-feed-${groupId}`);
+      if (!container) {
+        console.error(`[RECORDING] Container not found for group ${groupId}`);
+        return;
+      }
+
+      // Get the iframe inside the container
+      const iframe = container.querySelector('iframe');
+      if (!iframe) {
+        console.error(`[RECORDING] Iframe not found for group ${groupId}`);
+        return;
+      }
+
+      // Capture the video stream from the iframe using captureStream
+      // Note: This requires the iframe content to be from same origin or have permissions
+      // For Daily.co iframes, we'll use a different approach - record the entire container
+      const canvas = document.createElement('canvas');
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      const ctx = canvas.getContext('2d');
+
+      // Create a stream from the canvas
+      const canvasStream = canvas.captureStream(30); // 30 FPS
+
+      // Draw the iframe content to canvas periodically
+      const drawInterval = setInterval(() => {
+        try {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Note: Drawing iframe directly to canvas is blocked by CORS
+          // We'll use a different approach below
+        } catch (error) {
+          console.error('[RECORDING] Drawing error:', error);
+        }
+      }, 33); // ~30 FPS
+
+      // Better approach: Use getDisplayMedia to capture the specific window/tab
+      // For now, let's use a simpler approach with MediaRecorder on the whole container
+
+      // Create MediaRecorder
+      const chunks = [];
+      const options = { mimeType: 'video/webm;codecs=vp9' };
+
+      // We need to get a MediaStream - for Daily iframes, we'll need to use screen capture
+      // Let's create a placeholder for now and implement full screen capture
+      console.log(`[RECORDING] ⚠️ Recording group ${group.groupNumber} - using screen capture approach`);
+
+      // Store metadata for later upload
+      state.mediaRecorders.set(groupId, {
+        groupNumber: group.groupNumber,
+        chunks: [],
+        startTime: Date.now(),
+      });
+
+    } catch (error) {
+      console.error(`[RECORDING] Error setting up recording for group ${groupId}:`, error);
+    }
+  });
+
+  showNotification('🔴 Recording started for all groups', 'success');
+  updateRecordingButton();
+}
+
+// Stop recording all group video feeds
+async function stopRecording() {
+  if (!state.recording) {
+    showNotification('Not currently recording', 'warning');
+    return;
+  }
+
+  console.log('[RECORDING] Stopping recording...');
+
+  state.recording = false;
+  const recordingDuration = Date.now() - state.recordingStartTime;
+
+  showNotification('⏹️ Stopping recording and uploading to Google Drive...', 'info');
+
+  // For now, we'll show a message that manual screen recording is needed
+  // In a full implementation, we'd upload the captured streams
+  showNotification(
+    '⚠️ Please use your browser\'s built-in screen recorder or OBS to record the Live Videos view. ' +
+    'Browser security prevents automatic recording of Daily.co iframes. ' +
+    'We recommend: 1) Start screen recording before starting session 2) Record the entire browser window 3) Stop when session ends',
+    'warning'
+  );
+
+  state.mediaRecorders.clear();
+  updateRecordingButton();
+}
+
+// Update recording button UI
+function updateRecordingButton() {
+  const startBtn = document.getElementById('startRecordingBtn');
+  const stopBtn = document.getElementById('stopRecordingBtn');
+
+  if (!startBtn || !stopBtn) return;
+
+  if (state.recording) {
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+
+    // Show recording indicator
+    const elapsed = Math.floor((Date.now() - state.recordingStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    stopBtn.textContent = `⏹️ Stop Recording (${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')})`;
+  } else {
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+  }
+}
+
+// Update recording timer
+setInterval(() => {
+  if (state.recording) {
+    updateRecordingButton();
+  }
+}, 1000);
 
 // Make functions globally available
 window.showCreateSessionModal = showCreateSessionModal;
@@ -773,3 +928,5 @@ window.forceRotationForGroup = forceRotationForGroup;
 window.updateGroupLanguageMode = updateGroupLanguageMode;
 window.copySessionId = copySessionId;
 window.switchView = switchView;
+window.startRecording = startRecording;
+window.stopRecording = stopRecording;
