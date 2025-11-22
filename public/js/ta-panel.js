@@ -10,6 +10,8 @@ const state = {
   monitoringGroupId: null,
   dailyCall: null,
   refreshInterval: null,
+  currentView: 'cards', // 'cards' or 'videos'
+  dailyCallFrames: new Map(), // groupId -> DailyCallFrame for video grid
 };
 
 // Initialize on page load
@@ -589,6 +591,174 @@ function copySessionId() {
   });
 }
 
+// Switch between card view and video grid view
+async function switchView(view) {
+  state.currentView = view;
+
+  // Update button styles
+  const cardsBtn = document.getElementById('viewCards');
+  const videosBtn = document.getElementById('viewVideos');
+
+  if (view === 'cards') {
+    cardsBtn.style.background = 'white';
+    videosBtn.style.background = 'transparent';
+
+    document.getElementById('cardViewContainer').style.display = 'block';
+    document.getElementById('videoViewContainer').style.display = 'none';
+
+    // Clean up video feeds
+    cleanupLiveVideos();
+  } else {
+    cardsBtn.style.background = 'transparent';
+    videosBtn.style.background = 'white';
+
+    document.getElementById('cardViewContainer').style.display = 'none';
+    document.getElementById('videoViewContainer').style.display = 'block';
+
+    // Load video feeds
+    await loadLiveVideos();
+  }
+}
+
+// Load live video feeds for all groups
+async function loadLiveVideos() {
+  if (!state.currentSession || !state.currentSession.groups) {
+    return;
+  }
+
+  const videoGrid = document.getElementById('liveVideoGrid');
+  videoGrid.innerHTML = '';
+
+  // Filter groups that have Daily rooms and participants
+  const activeGroups = state.currentSession.groups.filter(g => g.dailyRoomUrl && g.size > 0);
+
+  if (activeGroups.length === 0) {
+    videoGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📹</div>
+        <h3>No Active Video Rooms</h3>
+        <p>Groups need participants to see video feeds.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Create a video container for each group
+  for (const group of activeGroups) {
+    const container = document.createElement('div');
+    container.style.background = 'white';
+    container.style.borderRadius = '12px';
+    container.style.overflow = 'hidden';
+    container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+
+    const header = document.createElement('div');
+    header.style.padding = '15px';
+    header.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    header.style.color = 'white';
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+
+    header.innerHTML = `
+      <div>
+        <div style="font-size: 18px; font-weight: bold;">Group ${group.groupNumber}</div>
+        <div style="font-size: 12px; opacity: 0.9;">${group.participants.length} participants | Rotation ${group.rotationCount || 1}</div>
+      </div>
+      <div>
+        <button
+          onclick="forceRotationForGroup('${group.groupId}')"
+          class="btn"
+          style="padding: 6px 12px; font-size: 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);"
+        >
+          🔄 Rotate
+        </button>
+      </div>
+    `;
+
+    const videoContainer = document.createElement('div');
+    videoContainer.id = `video-feed-${group.groupId}`;
+    videoContainer.style.height = '400px';
+    videoContainer.style.background = '#000';
+    videoContainer.style.position = 'relative';
+
+    container.appendChild(header);
+    container.appendChild(videoContainer);
+    videoGrid.appendChild(container);
+
+    // Join the Daily room for this group
+    try {
+      await joinGroupVideoFeed(group, videoContainer);
+    } catch (error) {
+      console.error(`Failed to join video for group ${group.groupNumber}:`, error);
+      videoContainer.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white;">
+          <div style="text-align: center;">
+            <div style="font-size: 36px; margin-bottom: 10px;">⚠️</div>
+            <div>Failed to load video feed</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+// Join a group's video feed as TA observer
+async function joinGroupVideoFeed(group, containerEl) {
+  // Get Daily token for TA
+  const response = await fetch('/api/get-daily-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      groupId: group.groupId,
+      participantId: `ta_monitor_${Date.now()}`,
+      isTA: true,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error('Failed to get Daily token');
+  }
+
+  // Create Daily call frame
+  const callFrame = window.DailyIframe.createFrame(containerEl, {
+    showLeaveButton: false,
+    showFullscreenButton: true,
+    iframeStyle: {
+      width: '100%',
+      height: '100%',
+      border: 'none',
+    },
+  });
+
+  // Join with camera/mic OFF (observer mode)
+  await callFrame.join({
+    url: data.roomUrl,
+    token: data.token,
+    startVideoOff: true,
+    startAudioOff: true,
+  });
+
+  // Store for cleanup
+  state.dailyCallFrames.set(group.groupId, callFrame);
+
+  console.log(`[TA Panel] Joined video feed for group ${group.groupNumber}`);
+}
+
+// Clean up all video feeds
+function cleanupLiveVideos() {
+  state.dailyCallFrames.forEach((callFrame, groupId) => {
+    try {
+      callFrame.leave();
+      callFrame.destroy();
+    } catch (error) {
+      console.error(`Error cleaning up video feed for ${groupId}:`, error);
+    }
+  });
+  state.dailyCallFrames.clear();
+}
+
 // Make functions globally available
 window.showCreateSessionModal = showCreateSessionModal;
 window.closeCreateSessionModal = closeCreateSessionModal;
@@ -602,3 +772,4 @@ window.forceRotation = forceRotation;
 window.forceRotationForGroup = forceRotationForGroup;
 window.updateGroupLanguageMode = updateGroupLanguageMode;
 window.copySessionId = copySessionId;
+window.switchView = switchView;

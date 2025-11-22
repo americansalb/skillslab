@@ -173,6 +173,10 @@ document.getElementById('joinGroupForm')?.addEventListener('submit', async (e) =
       role: data.currentRole,
     });
 
+    // Initialize Daily.co IMMEDIATELY - ask for camera/mic permission now
+    console.log('[STUDENT] Initializing video/audio now...');
+    await initializeDailyCall();
+
     // Show waiting page
     showWaitingPage();
 
@@ -196,9 +200,16 @@ async function initializeDailyCall() {
     console.log('[DAILY] Initializing Daily.co call...');
     console.log('[DAILY] Room URL:', state.dailyRoomUrl);
 
+    // Insert into waiting page video grid initially (or active page if already there)
+    const container = document.getElementById('waitingVideoGrid') || document.getElementById('videoGrid');
+    if (!container) {
+      console.error('[DAILY] No video container found!');
+      return;
+    }
+
     // Create Daily CallFrame with camera/mic enabled
     const callFrame = window.DailyIframe.createFrame(
-      document.getElementById('videoGrid'),
+      container,
       {
         iframeStyle: {
           width: '100%',
@@ -327,8 +338,8 @@ async function startSession(data) {
   updateTargetTime();
   updateInterface();
 
-  // Join Daily call
-  await initializeDailyCall();
+  // Daily call already initialized when group was joined
+  // No need to join again - video is already showing
 
   // Start time tracking
   startTimeTracking();

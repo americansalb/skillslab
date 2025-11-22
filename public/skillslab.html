@@ -214,27 +214,34 @@
     <div id="pageWaiting" class="page" style="display: none;">
       <div class="group-info-header">
         <h1>Welcome to Group <span id="displayGroupNumber"></span>!</h1>
-        <p>Waiting for session to start...</p>
+        <p>Test your camera/audio while waiting for instructor to start...</p>
       </div>
 
-      <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
-        <div style="margin: 30px 0;">
-          <h2>Your Role:</h2>
-          <div id="currentRoleBadge" class="role-badge"></div>
+      <!-- Video Grid (shows immediately) -->
+      <div id="waitingVideoGrid" class="video-grid" style="margin-bottom: 20px;">
+        <!-- Daily iframe will be inserted here -->
+      </div>
+
+      <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+        <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+          <div>
+            <h3 style="margin-bottom: 10px;">Your Role:</h3>
+            <div id="currentRoleBadge" class="role-badge"></div>
+          </div>
+
+          <div>
+            <h3 style="margin-bottom: 10px;">Next Role:</h3>
+            <div id="nextRoleBadge" class="role-badge"></div>
+          </div>
         </div>
 
-        <div style="margin: 30px 0;">
-          <h3>Next Role:</h3>
-          <div id="nextRoleBadge" class="role-badge"></div>
-        </div>
-
-        <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-          <h3>Group Members:</h3>
+        <div style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <h4 style="margin-bottom: 10px;">Group Members:</h4>
           <div id="groupMembersList"></div>
         </div>
 
-        <div class="loading-spinner"></div>
-        <p style="color: #666; margin-top: 20px;">Instructor will start the session shortly...</p>
+        <div class="loading-spinner" style="margin-top: 20px;"></div>
+        <p style="color: #666; margin-top: 15px; font-size: 14px;">Instructor will start the session shortly...</p>
       </div>
     </div>
 
