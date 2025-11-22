@@ -76,18 +76,24 @@ class DailyHelper {
         throw new Error('DAILY_API_KEY not configured');
       }
 
+      const tokenProperties = {
+        room_name: roomName,
+        user_name: participant.name,
+        user_id: participant.participantId,
+        is_owner: participant.isTA || false,
+        exp: Math.floor(Date.now() / 1000) + 7200, // 2 hours
+      };
+
+      // Only set recording properties for TAs
+      if (participant.isTA) {
+        tokenProperties.enable_recording = 'cloud';
+        tokenProperties.start_cloud_recording = false; // TA can start manually
+      }
+
       const response = await axios.post(
         `${this.baseUrl}/meeting-tokens`,
         {
-          properties: {
-            room_name: roomName,
-            user_name: participant.name,
-            user_id: participant.participantId,
-            is_owner: participant.isTA || false, // TAs are owners
-            enable_recording: participant.isTA ? 'cloud' : 'off', // Only TAs can start/stop recording
-            start_cloud_recording: participant.isTA ? true : false,
-            exp: Math.floor(Date.now() / 1000) + 7200, // 2 hours
-          },
+          properties: tokenProperties,
         },
         {
           headers: {

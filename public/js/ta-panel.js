@@ -338,7 +338,7 @@ async function monitorGroup(groupId) {
   } else {
     participantsList.innerHTML = group.participants.map(p => `
       <div class="participant-item">
-        <span class="participant-name">${p.name} (${p.email})</span>
+        <span class="participant-name">${p.name}</span>
         <span class="role-badge role-${p.role}">${formatRole(p.role)}</span>
       </div>
     `).join('');
@@ -407,10 +407,12 @@ async function joinGroupAsTA() {
       },
     });
 
-    // Join call
+    // Join call with camera/mic OFF (TA is just observing)
     await state.dailyCall.join({
       url: data.roomUrl,
       token: data.token,
+      startVideoOff: true,
+      startAudioOff: true,
     });
 
     // Notify group via socket
@@ -419,7 +421,7 @@ async function joinGroupAsTA() {
       taName: 'TA Observer',
     });
 
-    showNotification('Joined group successfully!', 'success');
+    showNotification('Joined group as observer (camera/mic OFF)', 'success');
   } catch (error) {
     console.error('Join group error:', error);
     showNotification('Failed to join group', 'error');

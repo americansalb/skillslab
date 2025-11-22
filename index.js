@@ -38,7 +38,7 @@ app.post('/api/create-skillslab-session', require('./api/create-skillslab-sessio
 app.post('/api/join-group', require('./api/join-group'));
 app.get('/api/get-group-state', require('./api/get-group-state'));
 app.post('/api/start-skillslab-session', require('./api/start-skillslab-session'));
-app.post('/api/end-skillslab-session', require('./api/end-skillslab-session'));
+app.post('/api/end-skillslab-session', (req, res) => require('./api/end-skillslab-session')(req, res, io));
 app.post('/api/rotate-roles', require('./api/rotate-roles'));
 app.post('/api/mark-ready', require('./api/mark-ready'));
 app.post('/api/create-daily-room', require('./api/create-daily-room'));
@@ -375,8 +375,9 @@ function checkRotations() {
   const groups = Array.from(sessionManager.groups.values());
 
   groups.forEach((group) => {
-    // Only check active groups
+    // Only check active groups with participants
     if (group.status !== 'active') return;
+    if (!group.participants || group.participants.length === 0) return;
 
     try {
       const shouldRotate = sessionManager.shouldRotate(group.groupId);

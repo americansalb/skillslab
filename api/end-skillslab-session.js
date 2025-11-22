@@ -4,9 +4,11 @@ const sessionManager = require('../utils/session-manager');
  * End a Skills Lab session
  * POST /api/end-skillslab-session
  */
-module.exports = (req, res) => {
+module.exports = (req, res, io) => {
   try {
     const { sessionId } = req.body;
+
+    console.log('[END-SESSION] Ending session:', sessionId);
 
     if (!sessionId) {
       return res.status(400).json({
@@ -16,6 +18,18 @@ module.exports = (req, res) => {
     }
 
     const session = sessionManager.endSession(sessionId);
+
+    // Notify all groups in this session
+    const groups = sessionManager.getSessionGroups(sessionId);
+    groups.forEach(group => {
+      console.log(`[END-SESSION] Notifying group ${group.groupId} that session ended`);
+      io.to(group.groupId).emit('skillslab:session-ended', {
+        message: 'Session has ended. Thank you for participating!',
+        sessionId,
+      });
+    });
+
+    console.log('[END-SESSION] ✓ Session ended successfully');
 
     res.json({
       success: true,
@@ -28,7 +42,7 @@ module.exports = (req, res) => {
       },
     });
   } catch (error) {
-    console.error('End session error:', error);
+    console.error('[END-SESSION] ✗ Error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to end session',

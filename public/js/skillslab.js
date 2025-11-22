@@ -48,6 +48,20 @@ function initSocket() {
     updateInterface();
   });
 
+  // Session ended
+  state.socket.on('skillslab:session-ended', (data) => {
+    console.log('[STUDENT] Session ended:', data);
+    alert(data.message || 'Session has ended. Thank you for participating!');
+
+    // Leave Daily call if active
+    if (state.dailyCallFrame) {
+      state.dailyCallFrame.leave();
+    }
+
+    // Reload page to start fresh
+    window.location.reload();
+  });
+
   // Line played by another participant
   state.socket.on('skillslab:line-played', (data) => {
     console.log('Line played:', data);
